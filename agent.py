@@ -6,6 +6,7 @@ import numpy as np
 
 from game import SnakeGameAI, Direction, Point
 from model import LinearQNet, QTrainer
+from helper import plot
 
 MAX_MEMORY = 100000
 BATCH_SIZE = 1000
@@ -113,9 +114,17 @@ def train():
             agent.n_games += 1
             agent.train_long_memory()
 
-            highscore = max(score, highscore)
+            if score > highscore:
+                highscore = score
+                agent.model.save()
 
             print('Game ', agent.n_games, "\nScore: ", score, "\nBest: ", highscore)
+
+            plot_scores.append(score)
+            total_score += score
+            mean_score = total_score / agent.n_games
+            plot_mean.append(mean_score)
+            plot(plot_scores, plot_mean)
 
 
 if __name__ == '__main__':
