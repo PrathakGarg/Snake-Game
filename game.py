@@ -1,7 +1,7 @@
 import pygame
 import random
 from enum import Enum
-from collections import namedtuple
+from collections import namedtuple, deque
 import numpy as np
 
 pygame.init()
@@ -54,6 +54,7 @@ class SnakeGameAI:
         self.food = None
         self._place_food()
         self.frame_iter = 0
+        self.loop_check = deque([Point(self.w / 2, self.h / 2)], maxlen=4)
 
     def _place_food(self):
         x = random.randint(0, (self.w - BLOCK_SIZE) // BLOCK_SIZE) * BLOCK_SIZE
@@ -81,9 +82,17 @@ class SnakeGameAI:
             reward = -10
             return reward, game_over, self.score
 
+        # Detect Loop
+        if self.frame_iter >= 1:
+            if self.head == self.loop_check[0]:
+                print("loop detected")
+                reward -= 7.5
+            self.loop_check.append(Point(self.head.x, self.head.y))
+
         # 4. place new food or just move
         if self.head == self.food:
             self.score += 1
+            # reward = 20*np.log(self.score+1)
             reward = 10
             self._place_food()
         else:
