@@ -1,14 +1,13 @@
 import pygame
 import random
+import numpy as np
 from enum import Enum
 from collections import namedtuple, deque
-import numpy as np
+from pygame.locals import OPENGL, DOUBLEBUF
+from OpenGL.GL import *
 
 pygame.init()
 font = pygame.font.Font('arial.ttf', 25)
-
-
-# font = pygame.font.SysFont('arial', 25)
 
 
 class Direction(Enum):
@@ -28,7 +27,7 @@ BLUE2 = (0, 100, 255)
 BLACK = (0, 0, 0)
 
 BLOCK_SIZE = 20
-SPEED = 20
+SPEED = 200
 
 
 class SnakeGameAI:
@@ -55,6 +54,7 @@ class SnakeGameAI:
         self._place_food()
         self.frame_iter = 0
         self.loop_check = deque([Point(self.w / 2, self.h / 2)], maxlen=4)
+        self.loops = 0
 
     def _place_food(self):
         x = random.randint(0, (self.w - BLOCK_SIZE) // BLOCK_SIZE) * BLOCK_SIZE
@@ -65,10 +65,19 @@ class SnakeGameAI:
 
     def play_step(self, action):
         self.frame_iter += 1
+
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 pygame.quit()
                 quit()
+            # if pygame.mouse.get_pressed()[0]:
+            #     # print("henlo")
+            #     global SPEED
+            #     self.display = pygame.display.set_mode((self.w, self.h), flags=pygame.HIDDEN)
+            #     SPEED = 2000
+            # if pygame.mouse.get_pressed()[1]:
+            #     self.display = pygame.display.set_mode((self.w, self.h), flags=OPENGL | DOUBLEBUF)
+
 
         # 2. move
         self._move(action)  # update the head
@@ -79,21 +88,23 @@ class SnakeGameAI:
         reward = 0
         if self.is_collision() or self.frame_iter > 100 * len(self.snake):
             game_over = True
-            reward = -10
+            reward = -20
             return reward, game_over, self.score
 
         # Detect Loop
         if self.frame_iter >= 1:
             if self.head == self.loop_check[0]:
-                print("loop detected")
-                reward -= 7.5
+                # print("loop detected")
+                self.loops += 1
+                if self.loops <= 25:
+                    reward -= 2
             self.loop_check.append(Point(self.head.x, self.head.y))
 
         # 4. place new food or just move
         if self.head == self.food:
             self.score += 1
-            # reward = 20*np.log(self.score+1)
-            reward = 10
+            reward = 150*np.log(self.score+1)
+            # reward = 10
             self._place_food()
         else:
             self.snake.pop()

@@ -5,17 +5,25 @@ import torch.nn as nn
 import torch.optim as optim
 import torch.nn.functional as F
 
+if torch.cuda.is_available():
+    print("Activating Cuda GPU")
+    torch.cuda.set_device(0)
+
 
 class LinearQNet(nn.Module):
     def __init__(self, input_size, hidden_layer, output_size):
         super().__init__()
         self.linear1 = nn.Linear(input_size, hidden_layer)
+        self.dropout1 = nn.Dropout(p=0.3)
         self.linear2 = nn.Linear(hidden_layer, hidden_layer)
+        self.dropout2 = nn.Dropout(p=0.3)
         self.linear3 = nn.Linear(hidden_layer, output_size)
 
     def forward(self, x):
         x = F.relu(self.linear1(x))
+        x = self.dropout1(x)
         x = F.relu(self.linear2(x))
+        x = self.dropout2(x)
         x = self.linear3(x)
 
         return x
@@ -48,7 +56,7 @@ class QTrainer:
             next_state = torch.unsqueeze(next_state, 0)
             action = torch.unsqueeze(action, 0)
             reward = torch.unsqueeze(reward, 0)
-            done = (done, )
+            done = (done,)
 
         # 1. Predict Q values with current state
         pred = self.model(state)
@@ -64,6 +72,11 @@ class QTrainer:
 
         self.optim.zero_grad()
         loss = self.criterion(target, pred)
+
+        # l2_lambda = 0.001
+        # l2_norm = sum(p.pow(2.0).sum() for p in self.model.parameters())
+        # loss = loss + l2_lambda * l2_norm
+
         loss.backward()
 
         self.optim.step()
